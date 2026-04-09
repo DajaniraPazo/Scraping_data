@@ -23,3 +23,5 @@ Ejecutar en terminal:
 pip install pandas selenium webdriver-manager openpyxl
 
 Proyecto de scraping de resultados UNMSM usando Selenium.
+
+Incluye extracción de todas las carreras y paginación completa.
