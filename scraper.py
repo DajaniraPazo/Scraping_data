@@ -183,6 +183,7 @@ def main():
 
     print("Excel generado correctamente")
     print("Dashboard creado: output/dashboard.xlsx")
+    ##SE HIZO UN MERGE CON feat/new_excel
 
     driver.quit()
 
