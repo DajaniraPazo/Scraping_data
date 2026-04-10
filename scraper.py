@@ -1,5 +1,6 @@
 import pandas as pd
 import time
+import os
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -59,6 +60,14 @@ def main():
 
     # SCRAPING
     data = []
+    columnas_excel = [
+        "Código",
+        "Apellidos y Nombres",
+        "Escuela",
+        "Puntaje",
+        "Mérito E.P",
+        "Observación",
+    ]
 
     for nombre, url in carreras:
         try:
@@ -75,18 +84,41 @@ def main():
                     columnas = fila.find_elements(By.TAG_NAME, "td")
 
                     if len(columnas) > 0:
-                        fila_data = [col.text for col in columnas]
-                        fila_data.append(nombre)
+                        fila_data = []
+
+                        for i, col in enumerate(columnas[: len(columnas_excel)]):
+                            valor = col.text.strip()
+
+                            if i == 3 and not valor:
+                                valor = col.get_attribute("data-score") or ""
+
+                            if i == 4 and not valor:
+                                valor = col.get_attribute("data-merit") or ""
+
+                            fila_data.append(valor)
+
+                        if len(fila_data) < len(columnas_excel):
+                            fila_data.extend([""] * (len(columnas_excel) - len(fila_data)))
                         data.append(fila_data)
 
                 # Intentar ir a siguiente página
                 try:
-                    boton_next = driver.find_element(By.ID, "example_next")
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                    time.sleep(1)
 
-                    if "disabled" in boton_next.get_attribute("class"):
+                    boton_next = driver.find_element(By.CSS_SELECTOR, "button.page-link.next")
+
+                    if boton_next.get_attribute("aria-disabled") == "true":
                         break
 
-                    boton_next.click()
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", boton_next)
+                    time.sleep(0.5)
+
+                    try:
+                        boton_next.click()
+                    except:
+                        driver.execute_script("arguments[0].click();", boton_next)
+
                     time.sleep(3)
 
                 except:
@@ -97,12 +129,9 @@ def main():
             continue
 
     # GUARDAR EXCEL
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(data, columns=columnas_excel)
 
-    if not df.empty:
-        columnas = [f"col_{i}" for i in range(len(df.columns)-1)] + ["carrera"]
-        df.columns = columnas
-
+    os.makedirs("output", exist_ok=True)
     df.to_excel("output/resultados_sanmarcos.xlsx", index=False)
 
     print("Excel generado correctamente")
