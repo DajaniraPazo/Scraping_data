@@ -131,10 +131,58 @@ def main():
     # GUARDAR EXCEL
     df = pd.DataFrame(data, columns=columnas_excel)
 
+    # Limpiar columnas numéricas
+    df['Puntaje'] = pd.to_numeric(df['Puntaje'], errors='coerce')
+    df['Mérito E.P'] = pd.to_numeric(df['Mérito E.P'], errors='coerce')
+
+    # Crear dashboard
+    dashboard_data = []
+    
+    # Por escuela (carrera)
+    for escuela, group in df.groupby('Escuela'):
+        total_postulantes = len(group)
+        ingresantes = group['Observación'].str.contains('ALCANZÓ VACANTE', na=False).sum()
+        
+        puntaje_promedio = group['Puntaje'].mean()
+        puntaje_maximo = group['Puntaje'].max()
+        
+        merito_promedio = group['Mérito E.P'].mean()
+        merito_maximo = group['Mérito E.P'].max()
+        
+        dashboard_data.append({
+            'Escuela': escuela,
+            'Total Postulantes': total_postulantes,
+            'Ingresantes': ingresantes,
+            'Puntaje Promedio': puntaje_promedio,
+            'Puntaje Máximo': puntaje_maximo,
+            'Mérito Promedio': merito_promedio,
+            'Mérito Máximo': merito_maximo
+        })
+
+    # Crear DataFrames ordenados para cada categoría
+    df_postulantes = pd.DataFrame(dashboard_data).sort_values('Total Postulantes', ascending=False)
+    df_ingresantes = pd.DataFrame(dashboard_data).sort_values('Ingresantes', ascending=False)
+    df_puntaje_promedio = pd.DataFrame(dashboard_data).sort_values('Puntaje Promedio', ascending=False)
+    df_puntaje_maximo = pd.DataFrame(dashboard_data).sort_values('Puntaje Máximo', ascending=False)
+    df_merito_promedio = pd.DataFrame(dashboard_data).sort_values('Mérito Promedio', ascending=False)
+    df_merito_maximo = pd.DataFrame(dashboard_data).sort_values('Mérito Máximo', ascending=False)
+
     os.makedirs("output", exist_ok=True)
+    
+    # Guardar Excel principal
     df.to_excel("output/resultados_sanmarcos.xlsx", index=False)
+    
+    # Guardar dashboard en otro Excel
+    with pd.ExcelWriter("output/dashboard.xlsx") as writer:
+        df_postulantes.to_excel(writer, sheet_name='Más Postulantes', index=False)
+        df_ingresantes.to_excel(writer, sheet_name='Más Ingresantes', index=False)
+        df_puntaje_promedio.to_excel(writer, sheet_name='Mejor Puntaje Promedio', index=False)
+        df_puntaje_maximo.to_excel(writer, sheet_name='Mejor Puntaje Máximo', index=False)
+        df_merito_promedio.to_excel(writer, sheet_name='Mejor Mérito Promedio', index=False)
+        df_merito_maximo.to_excel(writer, sheet_name='Mejor Mérito Máximo', index=False)
 
     print("Excel generado correctamente")
+    print("Dashboard creado: output/dashboard.xlsx")
 
     driver.quit()
 
